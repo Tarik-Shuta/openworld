@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Physics, RigidBody } from '@react-three/rapier'
-import { KeyboardControls, useKeyboardControls } from '@react-three/drei'
+import { KeyboardControls ,useKeyboardControls} from '@react-three/drei'
 import { Ecctrl, type EcctrlHandle } from 'ecctrl'
 import { EcctrlCameraControls, type EcctrlCameraControlsHandle } from 'ecctrl/camera'
 
@@ -85,17 +85,11 @@ function PointerLockCameraInput({
     return null
 }
 
-function CharacterKeyboardInput({ controller }: { controller: RefObject<EcctrlHandle | null> }) {
-    const [, getKeys] = useKeyboardControls()
+function EcctrlKeyboardInput({ controller }: { controller: RefObject<EcctrlHandle | null> }) {
+    const [, getKeyboardState] = useKeyboardControls()
 
     useFrame(() => {
-        controller.current?.setMovement({
-            forward: getKeys().forward,
-            backward: getKeys().backward,
-            leftward: getKeys().leftward,
-            rightward: getKeys().rightward,
-            jump: getKeys().jump,
-        })
+        controller.current?.setMovement(getKeyboardState())
     })
 
     return null
@@ -106,12 +100,15 @@ function App() {
     const character = useRef<EcctrlHandle | null>(null)
     const cameraControls = useRef<EcctrlCameraControlsHandle | null>(null)
 
+
+
     const keyboardMap = [
         { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
         { name: 'backward', keys: ['ArrowDown', 'KeyS'] },
         { name: 'leftward', keys: ['ArrowLeft', 'KeyA'] },
         { name: 'rightward', keys: ['ArrowRight', 'KeyD'] },
         { name: 'jump', keys: ['Space'] },
+        { name: 'run', keys: ['ShiftLeft', 'ShiftRight'] },
     ]
 
     return (
@@ -128,7 +125,6 @@ function App() {
                 }
             }}
         >
-            <KeyboardControls map={keyboardMap} domElement={sceneElement ?? undefined}>
                 <Canvas>
                     <color attach="background" args={['lightblue']} />
                     <ThirdPersonCamera controller={character} cameraControls={cameraControls} />
@@ -142,19 +138,23 @@ function App() {
                         maxDistance={8}
                     />
                     <PointerLockCameraInput cameraControls={cameraControls} />
-                    <CharacterKeyboardInput controller={character} />
 
                     <ambientLight intensity={0.5} />
                     <directionalLight position={[10, 10, 10]} intensity={1.5} />
 
-                    <Physics>
-                        <Ecctrl ref={character}>
+
+
+                    <Physics gravity={[0, -16.81, 0]}>
+                        <KeyboardControls map={keyboardMap}>
+                            <EcctrlKeyboardInput controller={character} />
+
+                        <Ecctrl ref={character} jumpVel={4} maxWalkVel={3} enableToggleRun={false}>
                             <mesh>
                                 <capsuleGeometry args={[0.3, 0.7]} />
                                 <meshStandardMaterial color="hotpink" />
                             </mesh>
                         </Ecctrl>
-
+                        </KeyboardControls>
                         <RigidBody type="fixed">
                             <mesh position={[0, -1, 0]}>
                                 <boxGeometry args={[50, 1, 50]} />
@@ -163,7 +163,7 @@ function App() {
                         </RigidBody>
                     </Physics>
                 </Canvas>
-            </KeyboardControls>
+
         </div>
     )
 }
